@@ -44,6 +44,7 @@ import java.lang.annotation.Target;
  * @author Michael J. Simons
  * @author Andrew Jefferson
  */
+
 @Target({ ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

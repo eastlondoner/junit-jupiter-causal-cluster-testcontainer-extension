@@ -18,6 +18,14 @@
  */
 package org.neo4j.junit.jupiter.causal_cluster;
 
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionConfigurationException;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestInstances;
+import org.junit.platform.commons.support.AnnotationSupport;
+import org.junit.platform.commons.support.HierarchyTraversalMode;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -30,19 +38,12 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.extension.BeforeAllCallback;
-import org.junit.jupiter.api.extension.ExtensionConfigurationException;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.TestInstances;
-import org.junit.platform.commons.support.AnnotationSupport;
-import org.junit.platform.commons.support.HierarchyTraversalMode;
-
 /**
  * Provides exactly one instance of {@link Neo4jCluster}.
  *
  * @author Michael J. Simons
  */
-class CausalClusterExtension implements BeforeAllCallback {
+class CausalClusterExtension implements BeforeAllCallback, AfterAllCallback {
 
 	private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace
 		.create(CausalClusterExtension.class);
@@ -64,12 +65,12 @@ class CausalClusterExtension implements BeforeAllCallback {
 		List.class, Neo4jCluster.class };
 
 	private static final Configuration DEFAULT_CONFIGURATION = new Configuration(DEFAULT_NEO4J_VERSION,
-		DEFAULT_NUMBER_OF_CORE_MEMBERS,
-		DEFAULT_NUMBER_OF_READ_REPLICAS, Duration.ofMillis(DEFAULT_STARTUP_TIMEOUT_IN_MILLIS), DEFAULT_PASSWORD,
-		DEFAULT_HEAP_SIZE_IN_MB, DEFAULT_PAGE_CACHE_IN_MB, null);
+		DEFAULT_NUMBER_OF_CORE_MEMBERS, DEFAULT_NUMBER_OF_READ_REPLICAS,
+		Duration.ofMillis(DEFAULT_STARTUP_TIMEOUT_IN_MILLIS), DEFAULT_PASSWORD,
+		DEFAULT_HEAP_SIZE_IN_MB, DEFAULT_PAGE_CACHE_IN_MB, false, null, "");
 
-	public void beforeAll(ExtensionContext context) {
-
+	public void beforeAll(ExtensionContext context) throws InterruptedException {
+		ClusterLock.acquire();
 		AnnotationSupport.findAnnotation(context.getRequiredTestClass(), NeedsCausalCluster.class)
 			.ifPresent(annotation -> {
 				final ExtensionContext.Store store = context.getStore(NAMESPACE);
@@ -79,7 +80,9 @@ class CausalClusterExtension implements BeforeAllCallback {
 					.withNumberOfCoreMembers(annotation.numberOfCoreMembers())
 					.withStartupTimeout(Duration.ofMillis(annotation.startupTimeOutInMillis()))
 					.withPassword(annotation.password())
-					.withCustomImageName(annotation.customImageName());
+					.withCustomImageName(annotation.customImageName())
+					.withNeo4jSourceOverride(annotation.overrideWithLocalNeo4jSource())
+					.withToxiproxyEnabled(annotation.proxyInternalCommunication());
 				store.put(KEY_CONFIG, configuration);
 
 				injectFields(context, context.getTestInstances().map(TestInstances::getInnermostInstance).orElse(null));
@@ -183,5 +186,11 @@ class CausalClusterExtension implements BeforeAllCallback {
 
 		Collection<URI> uris = getOrCreateCluster(extensionContext).getURIs();
 		return collectionType == URI.class ? uris : uris.stream().map(URI::toString).collect(Collectors.toList());
+	}
+
+	@Override
+	public void afterAll(ExtensionContext extensionContext) throws Exception {
+		System.out.println("Releasing lock for:" + extensionContext.getDisplayName());
+		ClusterLock.release();
 	}
 }

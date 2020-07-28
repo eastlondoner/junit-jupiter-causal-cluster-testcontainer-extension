@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.commons.util.ReflectionUtils;
 import org.testcontainers.containers.Neo4jContainer;
+import org.testcontainers.shaded.com.google.common.collect.Sets;
 
 @NeedsCausalCluster
 public class AllAnnotationsAppliedTest {
@@ -98,7 +99,7 @@ public class AllAnnotationsAppliedTest {
 		for (Neo4jServer server : allServers) {
 
 			DefaultNeo4jServer newServer = new DefaultNeo4jServer(
-				(Neo4jContainer<?>) field.get(server), new URI(server.getURI().toString()));
+				(Neo4jContainer<?>) field.get(server), new URI(server.getURI().toString()), null);
 
 			assertThat(newServer.hashCode()).isEqualTo(server.hashCode());
 			assertThat(newServer).isEqualTo(server);
@@ -106,6 +107,43 @@ public class AllAnnotationsAppliedTest {
 			allServers.add(newServer);
 		}
 		assertThat(allServers).hasSize(3);
+	}
+
+	/**
+	 * This test is required because the TestContainer obejct can change in various ways when containers are
+	 * stopped/started/killed and we want to ensure that does not mess with our ideas of server equality.
+	 */
+	@Test
+	void serverComparisonAfterPauseStopKill() throws InterruptedException
+	{
+		verifyConnectivity();
+
+		Set<Neo4jServer> allServersBefore = cluster.getAllServers();
+		List<Integer> hashCodesBefore = allServersBefore.stream().map(Object::hashCode).collect(Collectors.toList());
+
+		Set<Neo4jServer> paused = cluster.pauseRandomServers(1);
+		cluster.unpauseServers(paused);
+
+		Thread.sleep( 15000 );
+		verifyConnectivity();
+
+		Set<Neo4jServer> stopped = cluster.killRandomServersExcept(1, paused);
+		cluster.startServers(stopped);
+
+		Thread.sleep( 15000 );
+		verifyConnectivity();
+
+		Set<Neo4jServer> killed = cluster.killRandomServersExcept(1, Sets.union(stopped, paused));
+		cluster.startServers(killed);
+
+		Thread.sleep( 15000 );
+		verifyConnectivity();
+
+		Set<Neo4jServer> allServersAfter = cluster.getAllServers();
+		assertThat(allServersAfter).containsExactlyInAnyOrderElementsOf(allServersBefore);
+
+		List<Integer> hashCodesAfter = allServersAfter.stream().map(Object::hashCode).collect(Collectors.toList());
+		assertThat(hashCodesAfter).containsExactlyInAnyOrderElementsOf(hashCodesBefore);
 	}
 
 	@Test

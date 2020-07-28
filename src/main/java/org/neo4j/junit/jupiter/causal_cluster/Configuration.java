@@ -57,11 +57,17 @@ class Configuration implements Serializable {
 
 	private final int pagecacheSize;
 
+	private final boolean toxiproxyEnabled;
+
 	/**
 	 * Optional custom image name. Has precedence of the version number if set.
 	 */
 	private final String customImageName;
 
+	/**
+	 * Get the core index and hostname for all configured cores
+	 * @return A stream mapping a core index (integer) -> hostname (String)
+	 */
 	Stream<Map.Entry<Integer, String>> iterateCoreMembers() {
 		final IntFunction<String> generateInstanceName = i -> String.format("neo4j%d", i);
 
@@ -73,4 +79,9 @@ class Configuration implements Serializable {
 		return Optional.ofNullable(customImageName).filter(s -> !s.isEmpty())
 			.orElseGet(() -> String.format("neo4j:%s-enterprise", neo4jVersion));
 	}
+
+	/**
+	 * Optional neo4j bin folder. Overrides the contents of the neo4j docker image.
+	 */
+	private final String neo4jSourceOverride;
 }

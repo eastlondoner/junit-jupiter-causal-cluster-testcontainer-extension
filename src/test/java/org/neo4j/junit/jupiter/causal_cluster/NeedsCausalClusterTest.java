@@ -19,7 +19,6 @@
 package org.neo4j.junit.jupiter.causal_cluster;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.platform.engine.discovery.DiscoverySelectors.*;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -39,6 +38,7 @@ import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 
+import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
 /**
  * Testing the test.
  *
@@ -61,14 +61,15 @@ class NeedsCausalClusterTest {
 					selectClass(InstanceUriFieldInPerClassLifecycleTest.class),
 					selectClass(InstanceCollectionFieldInPerClassLifecycleTest.class),
 					selectClass(InstanceClusterFieldInPerClassLifecycleTest.class),
-					selectClass(NestedClassWithAllNeededAnnotationsTest.class)
+					selectClass(NestedClassWithAllNeededAnnotationsTest.class),
+					selectClass(UseToxiproxyTest.class)
 				)
 				.execute().testEvents();
 
 			assertThat(testEvents.failed().stream().collect(Collectors.toList()))
 				.hasSize(0);
 			assertThat(testEvents.succeeded().stream().collect(Collectors.toList()))
-				.hasSize(7);
+				.hasSize(8);
 		}
 
 		@Test
@@ -138,6 +139,20 @@ class NeedsCausalClusterTest {
 
 	static void verifyConnectivity(Collection<String> clusterUris) {
 		for (String clusterUri : clusterUris) {
+			verifyConnectivity(clusterUri);
+		}
+	}
+
+	@NeedsCausalCluster( proxyInternalCommunication = true)
+	static class UseToxiproxyTest {
+
+		@CausalCluster
+		static String clusterUri;
+
+		@Test
+		void aTest() {
+
+			assertThat(clusterUri).isNotNull();
 			verifyConnectivity(clusterUri);
 		}
 	}

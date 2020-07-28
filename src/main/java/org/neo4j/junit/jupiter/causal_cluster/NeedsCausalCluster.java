@@ -56,4 +56,11 @@ public @interface NeedsCausalCluster {
 	long startupTimeOutInMillis() default CausalClusterExtension.DEFAULT_STARTUP_TIMEOUT_IN_MILLIS;
 
 	String password() default "password";
+
+	boolean proxyInternalCommunication() default false;
+
+	/**
+	 * @return A path to a local folder containing neo4j binaries to use. Must refer to Neo4j enterprise binaries.
+	 */
+	String overrideWithLocalNeo4jSource() default "";
 }

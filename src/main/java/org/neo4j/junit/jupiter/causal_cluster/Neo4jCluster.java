@@ -47,4 +47,24 @@ public interface Neo4jCluster {
 	 * @return The Neo4j servers contained by this cluster.
 	 */
 	Set<Neo4jServer> getAllServers();
+
+	Set<Neo4jServer> getAllServersExcept(Set<Neo4jServer> exclusions);
+
+	Set<Neo4jServer> killRandomServers(int n);
+
+	Set<Neo4jServer> killRandomServersExcept(int n, Set<Neo4jServer> exclusions);
+
+	Set<Neo4jServer> stopRandomServers(int n);
+
+	Set<Neo4jServer> stopRandomServersExcept(int n, Set<Neo4jServer> exclusions);
+
+	Set<Neo4jServer> startServers(Set<Neo4jServer> containers);
+
+	Set<Neo4jServer> pauseRandomServers(int n);
+
+	Set<Neo4jServer> unpauseServers(Set<Neo4jServer> containers);
+
+	Set<Neo4jServer> partitionRandomServers(int n);
+
+	Set<Neo4jServer> unpartitionServers(Set<Neo4jServer> containers);
 }

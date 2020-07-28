@@ -29,8 +29,12 @@ import java.net.URI;
  */
 public interface Neo4jServer {
 
+	String getLatestLogs();
+
 	/**
 	 * @return An URI into this server.
 	 */
 	URI getURI();
+
+	URI getDirectBoltUri();
 }
