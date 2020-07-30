@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2019-2020 "Neo4j,"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * This file is part of Neo4j.
  *
@@ -8,7 +8,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,9 +51,16 @@ public @interface NeedsCausalCluster {
 	String customImageName() default "";
 
 	/**
-	 * Startup timeout for the cluster. Defaults to 5 minutes.
+	 * @return Startup timeout for the cluster. Defaults to 5 minutes.
 	 */
 	long startupTimeOutInMillis() default CausalClusterExtension.DEFAULT_STARTUP_TIMEOUT_IN_MILLIS;
 
 	String password() default "password";
+
+	boolean proxyInternalCommunication() default false;
+
+	/**
+	 * @return A path to a local folder containing neo4j binaries to use. Must refer to Neo4j enterprise binaries.
+	 */
+	String overrideWithLocalNeo4jSource() default "";
 }
